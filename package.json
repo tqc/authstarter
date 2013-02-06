@@ -1,0 +1,33 @@
+{
+  "version": "0.0.1",
+  "name": "authstarter",
+  "description: "Add mongodb based authentication to an express web app with three lines of code",
+  "author": "Tom Clarkson <tom@orangeguava.com> (http://tqclarkson.com)",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tqc/authstarter"
+  },
+  "bugs": {
+    "url": "https://github.com/tqc/authstarter/issues"
+  },
+  "main": "./authstarter",
+  "dependencies": {
+    "express": "2.5.x",
+    "mongodb": "1.1.6",
+    "passport": "*",
+    "passport-local": "*",
+    "password-hash": "*",
+    "node-cache": "*",
+    "extend": "*"
+},
+  "engines": {
+ 	 "node": ">=0.8",
+     "npm": "1"
+  },
+  "licenses": [
+    {
+      "type": "MIT",
+      "url": "https://github.com/tqc/authstarter/raw/master/LICENSE"
+    }
+  ]
+}
