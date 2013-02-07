@@ -6,7 +6,7 @@ var mongodb = require('mongodb');
     
     var passwordHash = require("password-hash");
 
-    var NodeCache = require( "nodea-cache" );    
+    var NodeCache = require( "node-cache" );    
     var userCache = new NodeCache({ stdTTL: 100, checkperiod: 120});
 
     var settings = {
