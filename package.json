@@ -1,5 +1,5 @@
 {
-  "version": "0.0.2",
+  "version": "0.0.3",
   "name": "authstarter",
   "description": "Add mongodb based authentication to an express web app with three lines of code",
   "author": "Tom Clarkson <tom@orangeguava.com> (http://tqclarkson.com)",
