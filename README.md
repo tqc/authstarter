@@ -82,7 +82,7 @@ Users may be created manually or using one of the provided functions that includ
 	var settings = {
         mongoUrl: process.env.MONGOHQ_URL,
         baseUrl: process.env.SECURE_DOMAIN,
-        userCollection: 'AdminUsers',
+        userCollection: process.env.USER_COLLECTION || 'AdminUsers',
         hashOptions: {
             algorithm: "sha512"
         },
