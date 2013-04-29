@@ -5,8 +5,9 @@ var mongodb = require('mongodb');
     var LocalStrategy = require('passport-local').Strategy;
     
     var passwordHash = require("password-hash");
+var flash = require('connect-flash');
 
-    var NodeCache = require( "nodea-cache" );    
+    var NodeCache = require( "node-cache" );    
     var userCache = new NodeCache({ stdTTL: 100, checkperiod: 120});
 
     var settings = {
@@ -124,7 +125,7 @@ var mongodb = require('mongodb');
 
     app.use(passport.initialize());
     app.use(passport.session());
-
+app.use(flash());
 
         var extend = require("extend");
 

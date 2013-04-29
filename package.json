@@ -12,13 +12,14 @@
   },
   "main": "./authstarter",
   "dependencies": {
-    "express": "2.5.x",
+    "express": "*",
     "mongodb": "1.1.6",
     "passport": "*",
     "passport-local": "*",
     "password-hash": "*",
     "node-cache": "*",
-    "extend": "*"
+    "extend": "*",
+    "connect-flash": "*"
 },
   "engines": {
  	 "node": ">=0.8",
