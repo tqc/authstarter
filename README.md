@@ -2,12 +2,15 @@
 
 This is the authentication code I find myself implementing on every project that needs a basic password protected demo or admin site. The flexibility of passport is nice, but for a simple app with few users all you need is something that works with minimal effort.
 
+* Express 3
 * Based on passport-local
 * Username/password stored in mongodb
 * Limit unsuccessful login attempts (3 per minute by default)
 * Password hashing
 * Users cached in memory to avoid excessive db requests
 * Redirection to original url
+* Hash preserved in redirection urls
+* Default login form provided if not overridden by creating views/login.jshtml
 
 The following routes are added to the app:
 * GET /login
@@ -26,7 +29,12 @@ To create necessary auth related view files, run
 
 ## Usage
 
-    var AuthStarter = require("./auth");
+    var partials = require('express-partials');
+    var AuthStarter = require("authstarter");
+
+    var app = express();
+
+    app.use(partials());
 
     app.configure(function() {
         app.use(express.cookieParser());
@@ -38,6 +46,7 @@ To create necessary auth related view files, run
         AuthStarter.configure(app);
         app.use(app.router);
         app.use(express.static(__dirname + '/static'));
+        app.engine('jshtml', require('jshtml-express'));
         app.set('view engine', 'jshtml');
     });
 
@@ -77,7 +86,10 @@ Users may be created manually or using one of the provided functions that includ
         hashOptions: {
             algorithm: "sha512"
         },
-        maxAttempts: 3
+        maxAttempts: 3,
+        layout: "blanklayout",
+        title: "Log In",
+        customCss: ""
     };
 
     AuthStarter.configure(app, settings);
@@ -87,7 +99,6 @@ Users may be created manually or using one of the provided functions that includ
 * userCollection - name of the mongodb collection
 * hashOptions - as used by password-hash
 * maxAttempts - number of incorrect login attempts allowed within one minute
-
 
 
 
