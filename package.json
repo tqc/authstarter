@@ -1,5 +1,5 @@
 {
-  "version": "0.0.5",
+  "version": "0.0.6",
   "name": "authstarter",
   "description": "Add mongodb based authentication to an express web app with three lines of code",
   "author": "Tom Clarkson <tom@orangeguava.com> (http://tqclarkson.com)",
@@ -19,7 +19,10 @@
     "password-hash": "*",
     "node-cache": "*",
     "extend": "*",
-    "connect-flash": "*"
+    "connect-flash": "*",
+    "jshtml": "*",
+    "jshtml-express": "git://github.com/tqc/jshtml-express.git#patch-1",
+    "express-partials": "*"
 },
   "engines": {
  	 "node": ">=0.8",

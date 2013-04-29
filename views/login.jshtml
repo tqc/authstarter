@@ -4,6 +4,7 @@
 <div class="logo"></div>
 
 <div class="error">@locals.flash.error</div>
+<div class="message">@locals.flash.message</div>
 
 <form action="/login" method="post">
     <div>

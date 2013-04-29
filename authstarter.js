@@ -1,21 +1,24 @@
 (function() {
-var mongodb = require('mongodb');
-var path = require("path");
-var fs = require("fs");
-var express = require("express");
+    var mongodb = require('mongodb');
+    var path = require("path");
+    var fs = require("fs");
+    var express = require("express");
 
     var passport = require('passport');
     var LocalStrategy = require('passport-local').Strategy;
-    
+
     var passwordHash = require("password-hash");
     var flash = require('connect-flash');
 
-    var NodeCache = require( "node-cache" );    
-    var userCache = new NodeCache({ stdTTL: 100, checkperiod: 120});
+    var NodeCache = require("node-cache");
+    var userCache = new NodeCache({
+        stdTTL: 100,
+        checkperiod: 120
+    });
 
     var settings = {
         mongoUrl: process.env.MONGOHQ_URL,
-        baseUrl: process.env.SECURE_DOMAIN,
+        baseUrl: process.env.SECURE_DOMAIN || "",
         userCollection: process.env.USER_COLLECTION || 'AdminUsers',
         hashOptions: {
             algorithm: "sha512"
@@ -32,16 +35,16 @@ var express = require("express");
             if (val && val[username] !== undefined) return callback(val[username]);
 
             mongodb.Db.connect(settings.mongoUrl, function(error, client) {
-            if(error) throw error;
+                if (error) throw error;
 
-            new mongodb.Collection(client, settings.userCollection).findOne({
-                username: username
-            }, function(err, user) {               
-                client.close();
-                userCache.set(username, user);
-                return callback(user);
+                new mongodb.Collection(client, settings.userCollection).findOne({
+                    username: username
+                }, function(err, user) {
+                    client.close();
+                    userCache.set(username, user);
+                    return callback(user);
+                });
             });
-        });
 
         })
 
@@ -56,8 +59,8 @@ var express = require("express");
         getUser(username, function(user) {
             if (!user) {
                 return done(null, false, {
-                            error: 'Invalid user/password'
-                        });
+                    error: 'Invalid user/password'
+                });
             }
 
             user.loginAttempts = user.loginAttempts || [];
@@ -68,34 +71,33 @@ var express = require("express");
             if (user.loginAttempts.length > settings.maxAttempts) {
                 var then = user.loginAttempts.shift();
                 if (then > now - 60000) {
-                     return done(null, false, {
-                            error: 'Account locked'
-                        });
+                    return done(null, false, {
+                        error: 'Account locked'
+                    });
                 }
             }
 
 
 
             if (!passwordHash.isHashed(user.password)) {
-            if (password != user.password) {
-                return done(null, false, {
-                            error: 'Invalid user/password'
-                        });
-            }
+                if (password != user.password) {
+                    return done(null, false, {
+                        error: 'Invalid user/password'
+                    });
+                }
 
-            }
-            else {
+            } else {
 
-            if (!passwordHash.verify(password, user.password)) {
-                return done(null, false, {
-                            error: 'Invalid user/password'
-                        });
+                if (!passwordHash.verify(password, user.password)) {
+                    return done(null, false, {
+                        error: 'Invalid user/password'
+                    });
+                }
             }
-}
 
             user.loginAttempts = [];
             return done(null, user);
-        })    
+        })
     }));
 
 
@@ -107,7 +109,7 @@ var express = require("express");
 
     passport.deserializeUser(function(id, done) {
         getUser(id, function(user) {
-             return done(null, user);
+            return done(null, user);
         });
         console.log(id);
     });
@@ -115,61 +117,70 @@ var express = require("express");
 
     exports.configure = function(app, options) {
 
-    var ensureAuthenticated = function(req, res, next) {
-            if(process.env.AUTHTYPE == "skip") {
+        var ensureAuthenticated = function(req, res, next) {
+            if (process.env.AUTHTYPE == "skip") {
                 req.user = {
                     username: "skipped login"
                 };
                 return next();
             }
-            if(req.isAuthenticated()) {
+            if (req.isAuthenticated()) {
                 return next();
             }
 
             req.session.callbackUrl = req.path;
 
-          //  res.redirect(settings.baseUrl + '/login');
+            //  res.redirect(settings.baseUrl + '/login');
 
-res.locals({
+            res.locals({
                 title: settings.title,
                 customCss: settings.customCss,
-                    flash: {error: "Authentication Required"}
-            })
+                flash: {
+                    error: "Authentication Required"
+                }
+            });
             res.status(401);
             renderLogin(res);
-        }
+        };
 
 
-    app.use(passport.initialize());
-    app.use(passport.session());
-    console.log("using flash");
-    app.use(flash());
+        app.use(passport.initialize());
+        app.use(passport.session());
+        console.log("using flash");
+        app.use(flash());
+
+
+        app.use(require('express-partials')());
 
         var extend = require("extend");
 
         extend(settings, options);
 
-    app.use("/authstarter",express.static(__dirname + '/static'));
+        app.use("/authstarter", express.static(__dirname + '/static'));
+
+        if (!app.engines[".jshtml"]) {
+            app.engine('jshtml', require("jshtml-express"));
+        }
 
 
-    var renderLogin = function (res) {
+        var renderLogin = function(res) {
             var customviewpath = app.get("views");
-            var defaultviewpath = __dirname+"/views/";
+            var defaultviewpath = __dirname + "/views/";
             var relative = path.relative(customviewpath, defaultviewpath);
 
-            var view = __dirname+'/views/login.jshtml'
-            var layout = __dirname+'/views/blanklayout.jshtml'
+            var view = __dirname + '/views/login.jshtml';
+            var layout = __dirname + '/views/blanklayout.jshtml';
 
-            if (fs.existsSync(customviewpath+"/login.jshtml")) 
-            view = customviewpath+"/login.jshtml";
+            if (fs.existsSync(customviewpath + "/login.jshtml")) view = customviewpath + "/login.jshtml";
 
-            if (fs.existsSync(customviewpath+"/"+settings.layout+".jshtml")) 
-            layout = customviewpath+"/"+settings.layout+".jshtml";
+            if (fs.existsSync(customviewpath + "/" + settings.layout + ".jshtml")) layout = customviewpath + "/" + settings.layout + ".jshtml";
 
 
-            res.render(view, { layout: layout});
+            res.render(view, {
+                layout: layout
+            });
 
-    }
+        };
 
 
         app.get('/logout', function(req, res) {
@@ -178,50 +189,52 @@ res.locals({
         });
 
         app.get('/login', function(req, res) {
-            
+
             res.locals({
                 title: settings.title,
                 customCss: settings.customCss,
-                    flash: req.flash(),
-                    originalUrl: req.session.callbackUrl
+                flash: req.flash(),
+                originalUrl: req.session.callbackUrl
             })
 
-renderLogin(res);
+            renderLogin(res);
 
         });
-   
+
         var authInternal = function(req, res, next) {
-            console.log("auth for " +req.body.originalUrl);
+            console.log("auth for " + req.body.originalUrl);
             req.session.callbackUrl = req.body.originalUrl;
-           return passport.authenticate('local', {
-            successRedirect: settings.baseUrl + '/loginredirect',
-            failureRedirect: settings.baseUrl + '/login',
-            failureFlash: true
-            })(req,res,next);
+            return passport.authenticate('local', {
+                successRedirect: settings.baseUrl + '/loginredirect',
+                failureRedirect: settings.baseUrl + '/login',
+                failureFlash: true
+            })(req, res, next);
 
         };
         app.post('/login', authInternal);
 
         app.get("/loginredirect", function(req, res) {
-            res.redirect(req.session.callbackUrl || (settings.baseUrl+"/"));
+            res.redirect(req.session.callbackUrl || (settings.baseUrl + "/"));
         })
 
 
-    exports.ensureAuthenticated = ensureAuthenticated;
+        exports.ensureAuthenticated = ensureAuthenticated;
 
 
     }
 
 
     exports.addUser = function(username, password, roles) {
-          mongodb.Db.connect(settings.mongoUrl, function(error, client) {
-            if(error) throw error;
+        mongodb.Db.connect(settings.mongoUrl, function(error, client) {
+            if (error) throw error;
             var collection = new mongodb.Collection(client, settings.userCollection);
             collection.save({
                 username: username,
                 password: passwordHash.generate(password, settings.hashOptions),
-                roles: roles || { admin: false }
-            }, function() {               
+                roles: roles || {
+                    admin: false
+                }
+            }, function() {
                 client.close();
             });
         });
@@ -229,20 +242,20 @@ renderLogin(res);
 
     exports.setPassword = function(username, password) {
 
-       mongodb.Db.connect(settings.mongoUrl, function(error, client) {
-            if(error) throw error;
+        mongodb.Db.connect(settings.mongoUrl, function(error, client) {
+            if (error) throw error;
             var collection = new mongodb.Collection(client, settings.userCollection);
             collection.findOne({
                 username: username
             }, function(err, user) {
                 if (user) {
                     user.password = passwordHash.generate(password, settings.hashOptions);
-                     collection.save(user, function() {
+                    collection.save(user, function() {
                         client.close();
                         userCache.set(username, user);
-                     });
-                }else {
-                       client.close();
+                    });
+                } else {
+                    client.close();
                 }
             });
         });

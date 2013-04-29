@@ -1,0 +1,45 @@
+body {
+    background-color: #27afff;
+    font-family: Arial;
+    background-size: cover;
+}
+
+.loginform {
+    position: relative;
+    background-color: rgba(255,255,255,0.5);
+    border: 1px solid black;
+    border-radius: 10px;
+    width: 450px;
+    margin: 200px auto auto auto;
+    text-align: center;
+}
+
+.loginform .logo {
+}
+
+.loginform .error {
+    color: red;
+    margin: 20px auto 20px auto;
+}
+
+.loginform form {
+    margin: 10px 0px 20px 40px;
+    text-align: right;
+    position: relative;
+}
+
+.loginform input {
+    display: block;
+    font-size: 18pt;
+    margin: 10px 0;
+}
+
+.loginform input[type=submit] {
+    position: absolute;
+    right: 30px;
+    top: -7px;
+   
+    width: 100px;
+    height: 100px;
+    border: none;
+}
