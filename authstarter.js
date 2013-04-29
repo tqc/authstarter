@@ -1,11 +1,14 @@
 (function() {
 var mongodb = require('mongodb');
+var path = require("path");
+var fs = require("fs");
+var express = require("express");
 
     var passport = require('passport');
     var LocalStrategy = require('passport-local').Strategy;
     
     var passwordHash = require("password-hash");
-var flash = require('connect-flash');
+    var flash = require('connect-flash');
 
     var NodeCache = require( "node-cache" );    
     var userCache = new NodeCache({ stdTTL: 100, checkperiod: 120});
@@ -17,7 +20,10 @@ var flash = require('connect-flash');
         hashOptions: {
             algorithm: "sha512"
         },
-        maxAttempts: 3
+        maxAttempts: 3,
+        layout: "blanklayout",
+        title: "Log In",
+        customCss: ""
     };
 
 
@@ -50,7 +56,7 @@ var flash = require('connect-flash');
         getUser(username, function(user) {
             if (!user) {
                 return done(null, false, {
-                            message: 'Invalid user/password'
+                            error: 'Invalid user/password'
                         });
             }
 
@@ -63,7 +69,7 @@ var flash = require('connect-flash');
                 var then = user.loginAttempts.shift();
                 if (then > now - 60000) {
                      return done(null, false, {
-                            message: 'Account locked'
+                            error: 'Account locked'
                         });
                 }
             }
@@ -73,7 +79,7 @@ var flash = require('connect-flash');
             if (!passwordHash.isHashed(user.password)) {
             if (password != user.password) {
                 return done(null, false, {
-                            message: 'Invalid user/password'
+                            error: 'Invalid user/password'
                         });
             }
 
@@ -82,7 +88,7 @@ var flash = require('connect-flash');
 
             if (!passwordHash.verify(password, user.password)) {
                 return done(null, false, {
-                            message: 'Invalid user/password'
+                            error: 'Invalid user/password'
                         });
             }
 }
@@ -93,20 +99,6 @@ var flash = require('connect-flash');
     }));
 
 
-    var ensureAuthenticated = function(req, res, next) {
-            if(process.env.AUTHTYPE == "skip") {
-                req.user = {
-                    username: "skipped login"
-                };
-                return next();
-            }
-            if(req.isAuthenticated()) {
-                return next();
-            }
-
-            req.session.callbackUrl = req.path;
-            res.redirect(settings.baseUrl + '/login');
-        }
 
     passport.serializeUser(function(user, done) {
         console.log(user);
@@ -123,13 +115,62 @@ var flash = require('connect-flash');
 
     exports.configure = function(app, options) {
 
+    var ensureAuthenticated = function(req, res, next) {
+            if(process.env.AUTHTYPE == "skip") {
+                req.user = {
+                    username: "skipped login"
+                };
+                return next();
+            }
+            if(req.isAuthenticated()) {
+                return next();
+            }
+
+            req.session.callbackUrl = req.path;
+
+          //  res.redirect(settings.baseUrl + '/login');
+
+res.locals({
+                title: settings.title,
+                customCss: settings.customCss,
+                    flash: {error: "Authentication Required"}
+            })
+            res.status(401);
+            renderLogin(res);
+        }
+
+
     app.use(passport.initialize());
     app.use(passport.session());
-app.use(flash());
+    console.log("using flash");
+    app.use(flash());
 
         var extend = require("extend");
 
         extend(settings, options);
+
+    app.use("/authstarter",express.static(__dirname + '/static'));
+
+
+    var renderLogin = function (res) {
+            var customviewpath = app.get("views");
+            var defaultviewpath = __dirname+"/views/";
+            var relative = path.relative(customviewpath, defaultviewpath);
+
+            var view = __dirname+'/views/login.jshtml'
+            var layout = __dirname+'/views/blanklayout.jshtml'
+
+            if (fs.existsSync(customviewpath+"/login.jshtml")) 
+            view = customviewpath+"/login.jshtml";
+
+            if (fs.existsSync(customviewpath+"/"+settings.layout+".jshtml")) 
+            layout = customviewpath+"/"+settings.layout+".jshtml";
+
+
+            res.render(view, { layout: layout});
+
+    }
+
 
         app.get('/logout', function(req, res) {
             req.logout();
@@ -137,29 +178,40 @@ app.use(flash());
         });
 
         app.get('/login', function(req, res) {
-            res.render('login', {
-                layout: "blanklayout",
-                title: '',
-                flash: req.flash()
-            });
+            
+            res.locals({
+                title: settings.title,
+                customCss: settings.customCss,
+                    flash: req.flash(),
+                    originalUrl: req.session.callbackUrl
+            })
+
+renderLogin(res);
+
         });
    
-        app.post('/login', passport.authenticate('local', {
+        var authInternal = function(req, res, next) {
+            console.log("auth for " +req.body.originalUrl);
+            req.session.callbackUrl = req.body.originalUrl;
+           return passport.authenticate('local', {
             successRedirect: settings.baseUrl + '/loginredirect',
             failureRedirect: settings.baseUrl + '/login',
             failureFlash: true
-        }));
+            })(req,res,next);
+
+        };
+        app.post('/login', authInternal);
 
         app.get("/loginredirect", function(req, res) {
-            res.redirect(settings.baseUrl +( req.session.callbackUrl || "/"));
+            res.redirect(req.session.callbackUrl || (settings.baseUrl+"/"));
         })
 
+
+    exports.ensureAuthenticated = ensureAuthenticated;
 
 
     }
 
-
-    exports.ensureAuthenticated = ensureAuthenticated;
 
     exports.addUser = function(username, password, roles) {
           mongodb.Db.connect(settings.mongoUrl, function(error, client) {

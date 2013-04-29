@@ -1,0 +1,12 @@
+<html>
+<head>
+<title>@locals.title</title>
+<link type="text/css" rel="stylesheet" href="authstarter/authstarter.css" />
+@if (locals.customCss) {
+	<link type="text/css" rel="stylesheet" href="@locals.customCss" />
+}
+</head>
+<body>
+@writeBody();
+</body>
+</html>

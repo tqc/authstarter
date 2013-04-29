@@ -1,5 +1,5 @@
 {
-  "version": "0.0.4",
+  "version": "0.0.5",
   "name": "authstarter",
   "description": "Add mongodb based authentication to an express web app with three lines of code",
   "author": "Tom Clarkson <tom@orangeguava.com> (http://tqclarkson.com)",
@@ -12,7 +12,7 @@
   },
   "main": "./authstarter",
   "dependencies": {
-    "express": "*",
+    "express": ">=3.2",
     "mongodb": "1.1.6",
     "passport": "*",
     "passport-local": "*",

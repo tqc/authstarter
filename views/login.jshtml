@@ -1,0 +1,29 @@
+
+<div class="loginform">
+
+<div class="logo"></div>
+
+<div class="error">@locals.flash.error</div>
+
+<form action="/login" method="post">
+    <div>
+    <input type="text" name="username" id="txtUsername" autocomplete="on" placeholder="Username" /><br/>
+    </div><div>
+    <input type="password" autocomplete="on" name="password" id="txtPassword" placeholder="Password"/>
+    </div><div>
+    <input type="submit" value="Log In"/>
+    </div>
+
+    <input type="hidden" name="originalUrl" id="txtOriginalUrl" value="@locals.originalUrl"/>
+
+
+</form>
+
+</div>
+
+<script>
+var txtOriginalUrl = document.getElementById("txtOriginalUrl");
+if (!txtOriginalUrl.value) {
+	txtOriginalUrl.value = document.location;
+}
+</script>
