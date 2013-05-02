@@ -130,6 +130,7 @@
 
             req.session.callbackUrl = req.path;
 
+//            console.log (req.url);
             //  res.redirect(settings.baseUrl + '/login');
 
             res.locals({
@@ -146,7 +147,7 @@
 
         app.use(passport.initialize());
         app.use(passport.session());
-        console.log("using flash");
+      //  console.log("using flash");
         app.use(flash());
 
 
