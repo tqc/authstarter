@@ -136,6 +136,7 @@
             res.locals({
                 title: settings.title,
                 customCss: settings.customCss,
+                loginUrl: settings.baseUrl+"/login",
                 flash: {
                     error: "Authentication Required"
                 }
@@ -195,6 +196,7 @@
                 title: settings.title,
                 customCss: settings.customCss,
                 flash: req.flash(),
+                loginUrl: settings.baseUrl+"/login",
                 originalUrl: req.session.callbackUrl
             })
 

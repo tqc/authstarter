@@ -6,7 +6,7 @@
 <div class="error">@locals.flash.error</div>
 <div class="message">@locals.flash.message</div>
 
-<form action="/login" method="post">
+<form action="@locals.loginUrl" method="post">
     <div>
     <input type="text" name="username" id="txtUsername" autocomplete="on" placeholder="Username" /><br/>
     </div><div>
