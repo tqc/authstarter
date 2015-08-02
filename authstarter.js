@@ -2,6 +2,7 @@
     var mongodb = require('mongodb');
     var path = require("path");
     var fs = require("fs");
+        var url = require("url");
     var express = require("express");
 
     var passport = require('passport');
@@ -29,27 +30,56 @@
         customCss: ""
     };
 
+    var dbServer, db;
+
+    var ensureDbReady = function(callback) {
+        if (db) return callback();
+        var connectionUri = url.parse(settings.mongoUrl);
+        var dbName = connectionUri.pathname.replace(/^\//, '');
+        var dbUser = connectionUri.auth.split(":")[0];
+        var dbPass = connectionUri.auth.split(":")[1];
+        var dbopts = {
+            auto_reconnect: true,
+            poolSize: 5
+        };
+
+        dbServer = new mongodb.Server(connectionUri.hostname, parseInt(connectionUri.port, 10), dbopts);
+        db = new mongodb.Db(dbName, dbServer, {});
+
+        db.open(function(err, p_client) {
+            if (err) throw err;
+            db.authenticate(dbUser, dbPass, function(err, p_client) {
+                if (err) throw err;
+                console.log("Database opened");
+
+
+                callback();
+            });
+        });
+
+    };
 
     var getUser = function(username, callback) {
         userCache.get(username, function(err, val) {
             if (val && val[username] !== undefined) return callback(val[username]);
 
-            mongodb.Db.connect(settings.mongoUrl, function(error, client) {
-                if (error) throw error;
+            ensureDbReady(function() {
+                var collection = new mongodb.Collection(db, settings.userCollection);
 
-                new mongodb.Collection(client, settings.userCollection).findOne({
+                collection.findOne({
                     username: username
                 }, function(err, user) {
-                    client.close();
+                    if (err) throw err;
+                    //                        client.close();
                     userCache.set(username, user);
                     return callback(user);
                 });
+
             });
+        });
 
-        })
 
-
-    }
+    };
 
 
     passport.use(new LocalStrategy(
@@ -97,13 +127,13 @@
 
             user.loginAttempts = [];
             return done(null, user);
-        })
+        });
     }));
 
 
 
     passport.serializeUser(function(user, done) {
-        console.log(user);
+        //        console.log(user);
         done(null, user.username);
     });
 
@@ -111,13 +141,14 @@
         getUser(id, function(user) {
             return done(null, user);
         });
-        console.log(id);
+        //        console.log(id);
     });
 
 
     exports.configure = function(app, options) {
 
         var ensureAuthenticated = function(req, res, next) {
+            console.log(req.session);
             if (process.env.AUTHTYPE == "skip") {
                 req.user = {
                     username: "skipped login"
@@ -130,7 +161,7 @@
 
             req.session.callbackUrl = req.path;
 
-//            console.log (req.url);
+            //            console.log (req.url);
             //  res.redirect(settings.baseUrl + '/login');
 
             res.locals({
@@ -147,15 +178,20 @@
 
         app.use(passport.initialize());
         app.use(passport.session());
-      //  console.log("using flash");
         app.use(flash());
 
 
         app.use(require('express-partials')());
 
         var extend = require("extend");
-
         extend(settings, options);
+
+        //console.log(settings);
+
+        if (options.db) {
+            db = options.db;
+        }
+        ensureDbReady(function() {});
 
         app.use("/authstarter", express.static(__dirname + '/static'));
 
@@ -176,7 +212,6 @@
 
             if (fs.existsSync(customviewpath + "/" + settings.layout + ".jshtml")) layout = customviewpath + "/" + settings.layout + ".jshtml";
 
-
             res.render(view, {
                 layout: layout
             });
@@ -196,14 +231,14 @@
                 customCss: settings.customCss,
                 flash: req.flash(),
                 originalUrl: req.session.callbackUrl
-            })
+            });
 
             renderLogin(res);
 
         });
 
         var authInternal = function(req, res, next) {
-            console.log("auth for " + req.body.originalUrl);
+            //            console.log("auth for " + req.body.originalUrl);
             req.session.callbackUrl = req.body.originalUrl;
             return passport.authenticate('local', {
                 successRedirect: settings.baseUrl + '/loginredirect',
@@ -215,37 +250,37 @@
         app.post('/login', authInternal);
 
         app.get("/loginredirect", function(req, res) {
+            //            console.log("redirecting - original url is " + req.session.callbackUrl);
             res.redirect(req.session.callbackUrl || (settings.baseUrl + "/"));
-        })
+        });
 
 
         exports.ensureAuthenticated = ensureAuthenticated;
 
 
-    }
+    };
 
 
     exports.addUser = function(username, password, roles) {
-        mongodb.Db.connect(settings.mongoUrl, function(error, client) {
-            if (error) throw error;
-            var collection = new mongodb.Collection(client, settings.userCollection);
-            collection.save({
-                username: username,
-                password: passwordHash.generate(password, settings.hashOptions),
-                roles: roles || {
-                    admin: false
-                }
-            }, function() {
-                client.close();
+        ensureDbReady(function() {
+            db.open(function(error, client) {
+                var collection = new mongodb.Collection(db, settings.userCollection);
+                collection.save({
+                    username: username,
+                    password: passwordHash.generate(password, settings.hashOptions),
+                    roles: roles || {
+                        admin: false
+                    }
+                }, function() {
+                    //                client.close();
+                });
             });
         });
-    }
+    };
 
     exports.setPassword = function(username, password) {
-
-        mongodb.Db.connect(settings.mongoUrl, function(error, client) {
-            if (error) throw error;
-            var collection = new mongodb.Collection(client, settings.userCollection);
+        ensureDbReady(function() {
+            var collection = new mongodb.Collection(db, settings.userCollection);
             collection.findOne({
                 username: username
             }, function(err, user) {
@@ -256,16 +291,16 @@
                         userCache.set(username, user);
                     });
                 } else {
-                    client.close();
+                    //          client.close();
                 }
             });
         });
-    }
+    };
 
     exports.setup = function() {
         // todo: copy setup code from chondric
         console.log("setup not implemented");
         return "";
-    }
+    };
 
 })();
